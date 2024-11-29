@@ -28,8 +28,6 @@ abstract class PetDB : RoomDatabase() {
             context: Context,
             scope: CoroutineScope
         ): PetDB {
-            //--- Ejecutar si la instancia no es nulo y devolver la instancia,
-            //--- sino crear la base de datos
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
@@ -40,7 +38,6 @@ abstract class PetDB : RoomDatabase() {
                     .addCallback(PetDBCallback(scope))
                     .build()
                 INSTANCE = instance
-                //-- Devolver la instancia
                 instance
             }
         }
@@ -73,10 +70,10 @@ abstract class PetDB : RoomDatabase() {
 
             val pet = PetEntity(
                 id = 1,
-                name = "Firulais",
+                name = "Chispitas",
                 birthdate = LocalDateTime.now().toString(),
-                description = "Perro blanco",
-                race = "Labrador",
+                description = "Perro blanco con cafe, patitas blancas",
+                race = "Pitbull",
                 image = ""
             )
             petDao.insert(pet)

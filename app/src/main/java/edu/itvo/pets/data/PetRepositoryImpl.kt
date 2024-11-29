@@ -25,9 +25,8 @@ class PetRepositoryImpl
         return localDataSource.getPet(petId)
     }
 
-    override suspend  fun updatePet(petModel: PetModel) {
-        localDataSource.update(petModel)
-    }
+    override suspend fun updatePet(petModel: PetModel) = localDataSource.update(petModel) // Delegación a DataSource
+
 
     override suspend fun addPet (petModel: PetModel) {
         localDataSource.insert(petModel)
@@ -36,4 +35,8 @@ class PetRepositoryImpl
     override suspend fun addPets(pets: List<PetModel>) {
         localDataSource.insertAll(pets)
     }
+    override suspend fun deletePet(petModel: PetModel) {
+        localDataSource.delete(petModel)
+    }
+
 }

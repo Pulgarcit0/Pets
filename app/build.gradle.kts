@@ -57,8 +57,12 @@ dependencies {
     //--------------------------
     implementation(libs.androidx.room.common)
     implementation(libs.androidx.room.ktx)
+    implementation ("io.coil-kt:coil-compose:2.3.0")
+
+
 
     implementation(libs.androidx.room.runtime)
+
     kapt ("androidx.room:room-compiler:2.6.1")
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)

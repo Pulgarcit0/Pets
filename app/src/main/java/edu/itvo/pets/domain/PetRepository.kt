@@ -11,4 +11,7 @@ interface PetRepository {
     suspend fun updatePet(petModel: PetModel)
     suspend fun addPet(petModel: PetModel)
     suspend fun addPets(pets:List<PetModel>)
+    suspend fun deletePet(petModel: PetModel)
+
+
 }

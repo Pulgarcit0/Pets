@@ -1,6 +1,7 @@
 package edu.itvo.pets.data.local.daos
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -31,7 +32,13 @@ interface PetDao{
     @Query("DELETE FROM pet WHERE id=:petId ")
     fun delete(petId: Int): Int
 
-    @Update(onConflict = OnConflictStrategy.REPLACE)
+    @Update
     fun update(pet: PetEntity): Int
+
+    @Delete
+    fun delete(pet: PetEntity)
+
+
+
 
 }
