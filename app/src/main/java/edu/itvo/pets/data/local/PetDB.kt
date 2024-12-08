@@ -74,7 +74,7 @@ abstract class PetDB : RoomDatabase() {
                 birthdate = LocalDateTime.now().toString(),
                 description = "Perro blanco con cafe, patitas blancas",
                 race = "Pitbull",
-                image = ""
+                image = "hugo"
             )
             petDao.insert(pet)
 

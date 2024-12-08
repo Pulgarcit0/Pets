@@ -1,5 +1,9 @@
 package edu.itvo.pets.presentation.composables
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.rememberAsyncImagePainter
 import edu.itvo.pets.presentation.viewmodel.PetViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,7 +27,19 @@ fun Pet(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var hasSaved by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) } // Para el menú desplegable
     val scrollState = rememberScrollState()
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) } // Para la imagen seleccionada
+    val icon = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown
+
+    // Lanzador para seleccionar imagen
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            selectedImageUri = uri
+            viewModel.onEvent(PetViewModel.PetEvent.ImageChanged(uri.toString())) // Actualiza el estado
+        }
+    )
 
     Card(modifier = modifier.fillMaxWidth()) {
         Column(
@@ -50,10 +67,7 @@ fun Pet(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Dropdown para el tipo de mascota
-            var expanded by remember { mutableStateOf(false) }
-            val icon = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown
-
+            // Dropdown para seleccionar tipo
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
@@ -66,20 +80,18 @@ fun Pet(
                         .fillMaxWidth()
                         .padding(8.dp),
                     label = { Text("Tipo:") },
-                    trailingIcon = {
-                        Icon(icon, contentDescription = null)
-                    },
+                    trailingIcon = { Icon(icon, contentDescription = null) },
                     readOnly = true
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    state.petTypes.forEach { selectionOption ->
+                    state.petTypes.forEach { type ->
                         DropdownMenuItem(
-                            text = { Text(selectionOption) },
+                            text = { Text(type) },
                             onClick = {
-                                viewModel.onEvent(PetViewModel.PetEvent.TypeChanged(selectionOption))
+                                viewModel.onEvent(PetViewModel.PetEvent.TypeChanged(type))
                                 expanded = false
                             }
                         )
@@ -108,39 +120,50 @@ fun Pet(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
-                value = state.image,
-                onValueChange = { viewModel.onEvent(PetViewModel.PetEvent.ImageChanged(it)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                label = { Text(text = "Foto:") }
-            )
+            // Botón para seleccionar imagen
+            Button(
+                onClick = { imagePickerLauncher.launch("image/*") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "Seleccionar Imagen")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Mostrar imagen seleccionada
+            selectedImageUri?.let { uri ->
+                Image(
+                    painter = rememberAsyncImagePainter(model = uri),
+                    contentDescription = "Imagen seleccionada",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             // Botón para guardar o actualizar
             Button(
                 onClick = {
                     if (state.isEditing) {
-                        // Actualización de mascota existente
+                        // Actualización
                         viewModel.onEvent(PetViewModel.PetEvent.UpdateClicked(
-                            id = state.selectedPetId ?: 0, // Usa el ID de la mascota seleccionada
+                            id = state.selectedPetId ?: 0,
                             name = state.name,
                             description = state.description,
                             type = state.type,
                             race = state.race,
                             birthdate = state.birthdate,
-                            image = state.image
+                            image = selectedImageUri.toString()
                         ))
                     } else {
-                        // Registro de nueva mascota
+                        // Agregar
                         viewModel.onEvent(PetViewModel.PetEvent.AddClicked(
                             name = state.name,
                             description = state.description,
                             type = state.type,
                             race = state.race,
                             birthdate = state.birthdate,
-                            image = state.image
+                            image = selectedImageUri.toString()
                         ))
                     }
                     hasSaved = true
