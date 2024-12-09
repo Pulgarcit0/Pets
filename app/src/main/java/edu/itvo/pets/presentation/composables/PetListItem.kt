@@ -15,7 +15,7 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.compose.foundation.clickable
 import edu.itvo.pets.data.models.PetModel
 import androidx.compose.ui.draw.clip
-
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,12 +39,12 @@ fun PetListItem(
         ) {
             // Imagen de la mascota
             Image(
-                painter = rememberAsyncImagePainter(model = pet.image),
+                painter = rememberAsyncImagePainter(model = File(pet.image)),
                 contentDescription = "Imagen de ${pet.name}",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(100.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(8.dp))
             )
 
             Spacer(modifier = Modifier.width(8.dp))

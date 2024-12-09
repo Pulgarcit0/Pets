@@ -38,12 +38,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(viewModel: PetViewModel = hiltViewModel()) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
     val currentScreen = remember { mutableStateOf(Screen.List) } // Estado para alternar entre pantallas
+
+    // Si la actualización fue exitosa, regresa automáticamente a la lista
+    if (state.success) {
+        currentScreen.value = Screen.List
+        viewModel.onEvent(PetViewModel.PetEvent.Reset) // Restablece el estado
+    }
 
     Scaffold(
         topBar = {
@@ -106,12 +111,10 @@ fun MainScreen(viewModel: PetViewModel = hiltViewModel()) {
                         )
                     }
                 }
-
             }
         }
     )
 }
-
 
 // Enum para definir las pantallas
 enum class Screen {

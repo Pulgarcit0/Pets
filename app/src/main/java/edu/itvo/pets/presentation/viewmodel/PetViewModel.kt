@@ -1,6 +1,9 @@
+
 package edu.itvo.pets.presentation.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 
 @HiltViewModel
@@ -46,18 +51,9 @@ class PetViewModel @Inject constructor(private val petUseCase: PetUseCase,
                 )
                 viewModelScope.launch(Dispatchers.IO) {
                     petUseCase.updatePet(updatedPet)
-                    onEvent(PetEvent.LoadPets)
+                    onEvent(PetEvent.LoadPets) // Recarga la lista
+                    _uiState.value = _uiState.value.copy(success = true) // Marca como exitoso
                 }
-                _uiState.value = _uiState.value.copy(
-                    name = "",
-                    description = "",
-                    type = "",
-                    race = "",
-                    birthdate = "",
-                    image = "",
-                    isEditing = false, // Restablece el estado de edición
-                    selectedPetId = null
-                )
             }
 
 
@@ -80,6 +76,8 @@ class PetViewModel @Inject constructor(private val petUseCase: PetUseCase,
             is PetEvent.DeletePet -> {
                 viewModelScope.launch(Dispatchers.IO) {
                     petUseCase.deletePet(event.pet)
+                    deleteImage(event.pet.image) // Agrega esta línea para eliminar la imagen
+
                     onEvent(PetEvent.LoadPets) // Recarga la lista
                 }
             }
@@ -89,12 +87,16 @@ class PetViewModel @Inject constructor(private val petUseCase: PetUseCase,
             }
 
             is PetEvent.NameChanged -> {
-              _uiState.value = _uiState.value.copy(
-                        name= event.name)
+                _uiState.value = _uiState.value.copy(
+                    name = event.name,
+                    touchedFields = _uiState.value.touchedFields.apply { add("name") }
+                )
             }
             is PetEvent.DescriptionChanged -> {
                 _uiState.value = _uiState.value.copy(
-                    description =  event.description)
+                    description = event.description,
+                    touchedFields = _uiState.value.touchedFields.apply { add("description") }
+                )
             }
             is PetEvent.ImageChanged -> {
                 _uiState.value = _uiState.value.copy(
@@ -102,15 +104,21 @@ class PetViewModel @Inject constructor(private val petUseCase: PetUseCase,
             }
             is PetEvent.TypeChanged -> {
                 _uiState.value = _uiState.value.copy(
-                    type = event.type)
+                    type = event.type,
+                    touchedFields = _uiState.value.touchedFields.apply { add("type") }
+                )
             }
             is PetEvent.RaceChanged -> {
                 _uiState.value = _uiState.value.copy(
-                    race= event.race)
+                    race = event.race,
+                    touchedFields = _uiState.value.touchedFields.apply { add("race") }
+                )
             }
             is PetEvent.BirthdateChanged -> {
                 _uiState.value = _uiState.value.copy(
-                    birthdate =  event.birthdate)
+                    birthdate = event.birthdate,
+                    touchedFields = _uiState.value.touchedFields.apply { add("birthdate") }
+                )
             }
             is PetEvent.AddClicked -> {
                 val pet = PetModel(
@@ -120,7 +128,7 @@ class PetViewModel @Inject constructor(private val petUseCase: PetUseCase,
                     type = event.type,
                     race = event.race,
                     birthdate = event.birthdate,
-                    image = event.image,
+                    image = event.image // Aquí debe estar la ruta de la imagen
                 )
                 viewModelScope.launch(Dispatchers.IO) {
                     petUseCase.addPet(pet)
@@ -128,9 +136,21 @@ class PetViewModel @Inject constructor(private val petUseCase: PetUseCase,
                 }
             }
 
-            is PetEvent.Reset -> {
 
+            is PetEvent.Reset -> {
+                _uiState.value = _uiState.value.copy(
+                    name = "",
+                    description = "",
+                    type = "",
+                    race = "",
+                    birthdate = "",
+                    image = "",
+                    isEditing = false,
+                    selectedPetId = null,
+                    success = false // Limpia el estado de éxito
+                )
             }
+
             is PetEvent.LoadPets -> {
                 viewModelScope.launch(Dispatchers.IO) {
                     _uiState.value = _uiState.value.copy(isLoading = true)
@@ -150,25 +170,28 @@ class PetViewModel @Inject constructor(private val petUseCase: PetUseCase,
             }
 
 
+            else -> {}
         }
     }
     data class PetState(
         val name: String = "",
-        val description: String ="",
-        val image: String ="",
+        val description: String = "",
+        val image: String = "",
         val type: String = "",
         val race: String = "",
         val birthdate: String = "",
-        val isLoading: Boolean=false,
+        val isLoading: Boolean = false,
         val error: String = "",
-        val success: Boolean=false,
+        val success: Boolean = false,
         val hasError: Boolean = false,
         val pets: List<PetModel> = emptyList(),
-        val petTypes: List<String> = emptyList(), // Lista de tipos de mascotas
+        val petTypes: List<String> = emptyList(),
         val selectedPet: PetModel? = null,
         val selectedPetId: Int? = null,
-        val isEditing: Boolean = false
-   )
+        val isEditing: Boolean = false,
+        val touchedFields: MutableSet<String> = mutableSetOf() // Campos tocados
+    )
+
     sealed class PetEvent {
         data class NameChanged(val name: String) : PetEvent()
         data class DescriptionChanged(val description: String) : PetEvent()
@@ -182,7 +205,7 @@ class PetViewModel @Inject constructor(private val petUseCase: PetUseCase,
                               val race: String,
                               val birthdate: String,
                               val image: String
-            ) : PetEvent()
+        ) : PetEvent()
         data class UpdateClicked(
             val id: Int,
             val name: String,
@@ -209,5 +232,36 @@ class PetViewModel @Inject constructor(private val petUseCase: PetUseCase,
     ) : ViewModel() {
 
     }
+    fun saveImageToInternalStorage(uri: Uri, context: Context): String {
+        val file = File(context.filesDir, "images")
+        if (!file.exists()) {
+            file.mkdir() // Crear directorio si no existe
+        }
+        val fileName = "pet_image_${System.currentTimeMillis()}.jpg"
+        val imageFile = File(file, fileName)
+
+        try {
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                FileOutputStream(imageFile).use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+            println("Imagen guardada en: ${imageFile.absolutePath}") // Línea para depuración
+        } catch (e: Exception) {
+            e.printStackTrace()
+            println("Error al guardar la imagen: ${e.message}") // Depuración en caso de error
+        }
+
+        return imageFile.absolutePath // Devuelve la ruta absoluta
+    }
+
+    fun deleteImage(filePath: String) {
+        val file = File(filePath)
+        if (file.exists()) {
+            file.delete()
+        }
+    }
+
+
 
 }
